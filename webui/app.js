@@ -69,6 +69,32 @@
     viewerName: $("#viewerName"),
     viewerTag: $("#viewerTag"),
     viewerHint: $("#viewerHint"),
+    questsStatus: $("#questsStatus"),
+    questRefreshBtn: $("#questRefreshBtn"),
+    questStopBtn: $("#questStopBtn"),
+    questActive: $("#questActive"),
+    questActiveName: $("#questActiveName"),
+    questActiveType: $("#questActiveType"),
+    questActiveValue: $("#questActiveValue"),
+    questActiveBar: $("#questActiveBar"),
+    questActiveStatus: $("#questActiveStatus"),
+    questList: $("#questList"),
+    questEmpty: $("#questEmpty"),
+    questCount: $("#questCount"),
+    questsLog: $("#questsLog"),
+    nameScanStatus: $("#nameScanStatus"),
+    nameLengthRow: $("#nameLengthRow"),
+    nameCount: $("#nameCount"),
+    nameDigits: $("#nameDigits"),
+    nameScanBtn: $("#nameScanBtn"),
+    nameScanProgress: $("#nameScanProgress"),
+    nameScanBar: $("#nameScanBar"),
+    nameResults: $("#nameResults"),
+    nameResultCount: $("#nameResultCount"),
+    nameScanNote: $("#nameScanNote"),
+    nameManual: $("#nameManual"),
+    nameCheckBtn: $("#nameCheckBtn"),
+    nameApplyBtn: $("#nameApplyBtn"),
     footerState: $("#footerState"),
     privacyNote: $("#privacyNote"),
     credModal: $("#credModal"),
@@ -84,11 +110,15 @@
     profile: null,
     profileLoading: false,
     lastLogId: 0,
-    cutoffs: { games: 0, stream: 0 },
+    cutoffs: { games: 0, stream: 0, quests: 0 },
     claimToastKey: "",
     streamWasRunning: false,
     viewerWasRunning: false,
     pingsFailed: 0,
+    nameLen: 2,
+    questsKey: "",
+    nameResultsKey: "",
+    nameToastKey: "",
   };
 
   if (!APP_KEY || APP_KEY === "__APP_KEY__") {
@@ -431,6 +461,10 @@
       panel.hidden = !active;
     });
     if (tab === "profile" && state.auth && !state.profile) loadProfile(true);
+    if (tab === "quests" && state.auth) {
+      const quests = (state.snapshot || {}).quests || {};
+      if (!quests.refreshedAt) refreshQuests(true);
+    }
   }
 
   /* -------------------------------------------------------------------- login */
@@ -694,8 +728,9 @@
   function appendLogs(lines) {
     if (!lines.length) return;
     let maxId = state.lastLogId;
-    ["games", "stream"].forEach((target) => {
-      const consoleNode = target === "games" ? dom.gamesLog : dom.streamLog;
+    ["games", "stream", "quests"].forEach((target) => {
+      const consoleNode =
+        target === "games" ? dom.gamesLog : target === "stream" ? dom.streamLog : dom.questsLog;
       const cutoff = state.cutoffs[target];
       const nearBottom =
         consoleNode.scrollTop + consoleNode.clientHeight >= consoleNode.scrollHeight - 48;
@@ -731,7 +766,8 @@
   }
 
   function clearLogView(target) {
-    const consoleNode = target === "games" ? dom.gamesLog : dom.streamLog;
+    const consoleNode =
+      target === "games" ? dom.gamesLog : target === "stream" ? dom.streamLog : dom.questsLog;
     consoleNode.replaceChildren();
     state.cutoffs[target] = state.lastLogId;
   }
@@ -828,11 +864,285 @@
       toast("خرج حساب المشاهدة من الروم.", "warn");
     }
     state.viewerWasRunning = Boolean(viewer.running);
+    renderQuests(snapshot.quests || {});
+    renderNameScan(snapshot.usernameScan || {});
     updateLiveTimer();
   }
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
+  }
+
+  function formatSeconds(value) {
+    const total = Math.max(0, Math.round(Number(value) || 0));
+    if (total < 60) return `${total} ث`;
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    return seconds ? `${minutes} د ${seconds} ث` : `${minutes} د`;
+  }
+
+  /* -------------------------------------------------------------------- quests */
+  function renderQuests(data) {
+    const quests = Array.isArray(data.quests) ? data.quests : [];
+    const active = data.active || {};
+    const running = Boolean(data.running);
+    dom.questRefreshBtn.disabled = !state.auth;
+    dom.questStopBtn.disabled = !running;
+    dom.questCount.textContent = String(quests.filter((quest) => !quest.claimed).length);
+
+    if (running) {
+      setStatus(dom.questsStatus, "قيد التنفيذ", "busy");
+    } else if (active.id && active.status) {
+      const failed = /تعذر|لا يحتسب|غير مدعوم|الإيقاف|لم يكتمل/.test(active.status);
+      setStatus(dom.questsStatus, active.status, failed ? "error" : "ok");
+    } else {
+      setStatus(dom.questsStatus, "جاهز", "");
+    }
+
+    dom.questActive.hidden = !active.id;
+    if (active.id) {
+      dom.questActiveName.textContent = active.name || "—";
+      dom.questActiveType.textContent = active.typeLabel || "";
+      const target = Number(active.target) || 0;
+      const progress = Number(active.progress) || 0;
+      dom.questActiveValue.textContent =
+        target > 0 ? `${formatSeconds(progress)} / ${formatSeconds(target)}` : "—";
+      dom.questActiveBar.style.width =
+        target > 0 ? `${Math.round(clamp(progress / target, 0, 1) * 100)}%` : "0";
+      dom.questActiveStatus.textContent = active.status || "";
+    }
+
+    const key = JSON.stringify(quests);
+    if (key === state.questsKey) return;
+    state.questsKey = key;
+    dom.questList.replaceChildren();
+    if (!quests.length) {
+      dom.questEmpty.hidden = false;
+      return;
+    }
+    dom.questEmpty.hidden = true;
+    quests.forEach((quest) => {
+      const row = document.createElement("div");
+      row.className = "quest-item";
+      const main = document.createElement("div");
+      main.className = "quest-main";
+      const title = document.createElement("strong");
+      title.textContent = quest.name || "مهمة";
+      const meta = document.createElement("span");
+      meta.className = "quest-meta";
+      const stateText = quest.claimed
+        ? "تم الاستلام"
+        : quest.completed
+          ? "مكتملة — بانتظار الاستلام"
+          : quest.enrolled
+            ? "مقبولة"
+            : "غير مقبولة";
+      const bits = [quest.typeLabel || "", stateText];
+      if (quest.target > 0 && !quest.completed) {
+        bits.push(`${formatSeconds(quest.progress)} من ${formatSeconds(quest.target)}`);
+      }
+      if (quest.reward) bits.push(`الجائزة: ${quest.reward}`);
+      meta.textContent = bits.filter(Boolean).join(" · ");
+      main.append(title, meta);
+      row.appendChild(main);
+
+      const actions = document.createElement("div");
+      actions.className = "quest-actions";
+      const addButton = (action, label, kind) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `btn ${kind || ""} small`;
+        button.textContent = label;
+        button.dataset.questAction = action;
+        button.dataset.questId = quest.id;
+        if (running && action === "start") button.disabled = true;
+        actions.appendChild(button);
+      };
+      if (quest.claimable) {
+        addButton("claim", "استلام", "primary");
+      } else if (!quest.completed) {
+        if (!quest.enrolled) addButton("enroll", "قبول", "ghost");
+        if (quest.enrolled && quest.supported) addButton("start", "تنفيذ", "primary");
+        if (!quest.supported) {
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.textContent = "غير مدعوم";
+          actions.appendChild(chip);
+        }
+      }
+      row.appendChild(actions);
+      dom.questList.appendChild(row);
+    });
+  }
+
+  async function refreshQuests(silent = false) {
+    dom.questRefreshBtn.disabled = true;
+    try {
+      await api("/api/quests/refresh", { method: "POST", body: {} });
+      if (!silent) toast("تم تحديث المهام.", "ok");
+      await pollState();
+    } catch (error) {
+      toast(error.message, "error", 6500);
+    } finally {
+      if (state.auth) dom.questRefreshBtn.disabled = false;
+    }
+  }
+
+  async function runQuestAction(action, id) {
+    try {
+      await api(`/api/quests/${action}`, { method: "POST", body: { id } });
+      const messages = {
+        enroll: "تم قبول المهمة — اضغط تنفيذ لبدء التقدم.",
+        start: "بدأ تنفيذ المهمة — تابع التقدم أعلاه.",
+        claim: "تم إرسال طلب استلام الجائزة.",
+      };
+      toast(messages[action] || "تم.", "ok");
+      await pollState();
+    } catch (error) {
+      toast(error.message, "error", 7000);
+    }
+  }
+
+  async function stopQuest() {
+    try {
+      await api("/api/quests/stop", { method: "POST", body: {} });
+      toast("جاري إيقاف المهمة…", "warn");
+      await pollState();
+    } catch (error) {
+      toast(error.message, "error", 6000);
+    }
+  }
+
+  /* ------------------------------------------------------------------ username */
+  function renderNameScan(scan) {
+    const running = Boolean(scan.running);
+    dom.nameScanBtn.disabled = running || !state.auth;
+    dom.nameScanBtn.textContent = running ? "جاري البحث…" : "ابدأ البحث";
+    dom.nameScanProgress.hidden = !running;
+    dom.nameScanBar.classList.toggle("indeterminate", running);
+    dom.nameScanBar.style.width = "";
+
+    const shownLength = running ? Number(scan.length) || state.nameLen : state.nameLen;
+    $$("[data-name-len]", dom.nameLengthRow).forEach((button) => {
+      button.classList.toggle("active", Number(button.dataset.nameLen) === shownLength);
+    });
+
+    const results = Array.isArray(scan.results) ? scan.results : [];
+    dom.nameResultCount.textContent = String(results.length);
+
+    if (running) {
+      setStatus(dom.nameScanStatus, `يفحص ${scan.checked || 0}`, "busy");
+      dom.nameScanNote.textContent = `جاري فحص الأسماء… تم فحص ${scan.checked || 0} حتى الآن.`;
+    } else if (scan.error) {
+      setStatus(dom.nameScanStatus, "توقف", "error");
+      dom.nameScanNote.textContent = scan.error;
+    } else if (scan.finishedAt) {
+      setStatus(dom.nameScanStatus, `${results.length} متاح`, results.length ? "ok" : "");
+      dom.nameScanNote.textContent = `انتهى الفحص — ${results.length} اسم متاح من ${scan.checked || 0}.`;
+    } else {
+      setStatus(dom.nameScanStatus, "جاهز", "");
+      dom.nameScanNote.textContent = "لا توجد نتائج بعد — ابدأ البحث.";
+    }
+
+    const key = JSON.stringify(results);
+    if (key !== state.nameResultsKey) {
+      state.nameResultsKey = key;
+      dom.nameResults.replaceChildren();
+      results.forEach((name) => {
+        const item = document.createElement("div");
+        item.className = "name-item";
+        const label = document.createElement("strong");
+        label.dir = "ltr";
+        label.textContent = name;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn primary small";
+        button.textContent = "اختيار";
+        button.dataset.namePick = name;
+        item.append(label, button);
+        dom.nameResults.appendChild(item);
+      });
+    }
+
+    if (scan.finishedAt) {
+      const toastKey = `${scan.finishedAt}:${results.length}`;
+      if (state.nameToastKey && state.nameToastKey !== toastKey) {
+        if (scan.error) toast(`توقف الفحص: ${scan.error}`, "error", 6500);
+        else if (results.length) toast(`انتهى الفحص: ${results.length} اسم متاح.`, "ok", 6000);
+        else toast("انتهى الفحص بدون أسماء متاحة — جرّب طولاً آخر.", "warn", 6000);
+      }
+      state.nameToastKey = toastKey;
+    }
+  }
+
+  async function startNameScan() {
+    const count = Number.parseInt(dom.nameCount.value, 10);
+    if (!Number.isFinite(count) || count < 1) {
+      toast("أدخل عدداً صحيحاً للأسماء.", "error");
+      shake(dom.nameCount);
+      return;
+    }
+    dom.nameScanBtn.disabled = true;
+    try {
+      await api("/api/username/scan", {
+        method: "POST",
+        body: { length: state.nameLen, count, digits: dom.nameDigits.checked },
+      });
+      toast("بدأ البحث عن الأسماء المتاحة.", "ok");
+      await pollState();
+    } catch (error) {
+      dom.nameScanBtn.disabled = false;
+      toast(error.message, "error", 6500);
+    }
+  }
+
+  async function checkName() {
+    const name = dom.nameManual.value.trim().toLowerCase();
+    if (!name) {
+      toast("اكتب الاسم أولاً.", "warn");
+      shake(dom.nameManual);
+      return;
+    }
+    dom.nameCheckBtn.disabled = true;
+    try {
+      const { available } = await api("/api/username/check", {
+        method: "POST",
+        body: { username: name },
+      });
+      toast(
+        available ? `الاسم ${name} متاح.` : `الاسم ${name} غير متاح.`,
+        available ? "ok" : "warn",
+        6000
+      );
+      await pollState();
+    } catch (error) {
+      toast(error.message, "error", 6500);
+    } finally {
+      dom.nameCheckBtn.disabled = false;
+    }
+  }
+
+  async function applyName(name) {
+    const value = String(name || "").trim().toLowerCase();
+    if (!value) {
+      toast("اكتب الاسم أولاً.", "warn");
+      shake(dom.nameManual);
+      return;
+    }
+    if (!window.confirm(`تغيير اسم حسابك إلى ${value}؟`)) return;
+    dom.nameApplyBtn.disabled = true;
+    try {
+      await api("/api/username/apply", { method: "POST", body: { username: value } });
+      toast(`تم تغيير اسمك إلى ${value}.`, "ok", 6000);
+      dom.nameManual.value = "";
+      state.profile = null;
+      await loadProfile(true);
+      await pollState();
+    } catch (error) {
+      toast(error.message, "error", 7500);
+    } finally {
+      dom.nameApplyBtn.disabled = false;
+    }
   }
 
   async function pollState() {
@@ -943,6 +1253,35 @@
       const show = input.type === "password";
       input.type = show ? "text" : "password";
       button.setAttribute("aria-label", show ? "إخفاء القيمة" : "إظهار القيمة");
+    });
+  });
+
+  dom.questRefreshBtn.addEventListener("click", () => refreshQuests());
+  dom.questStopBtn.addEventListener("click", stopQuest);
+  dom.questList.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-quest-action]");
+    if (!button) return;
+    button.disabled = true;
+    runQuestAction(button.dataset.questAction, button.dataset.questId);
+  });
+
+  dom.nameLengthRow.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-name-len]");
+    if (!button) return;
+    state.nameLen = Number(button.dataset.nameLen) || 2;
+    $$("[data-name-len]", dom.nameLengthRow).forEach((node) => {
+      node.classList.toggle("active", node === button);
+    });
+  });
+  dom.nameScanBtn.addEventListener("click", startNameScan);
+  dom.nameCheckBtn.addEventListener("click", checkName);
+  dom.nameApplyBtn.addEventListener("click", () => applyName(dom.nameManual.value));
+  dom.nameResults.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-name-pick]");
+    if (!button) return;
+    button.disabled = true;
+    applyName(button.dataset.namePick).finally(() => {
+      button.disabled = false;
     });
   });
 
