@@ -110,6 +110,8 @@
         <button class="nav-pill active" type="button" role="tab" aria-selected="true" data-tab="profile">البروفايل</button>
         <button class="nav-pill" type="button" role="tab" aria-selected="false" data-tab="games">بادجات الألعاب</button>
         <button class="nav-pill" type="button" role="tab" aria-selected="false" data-tab="stream">البث المباشر</button>
+        <button class="nav-pill" type="button" role="tab" aria-selected="false" data-tab="quests">المهام</button>
+        <button class="nav-pill" type="button" role="tab" aria-selected="false" data-tab="username">اليوزر</button>
       </nav>
 
       <div class="account">
@@ -316,6 +318,112 @@
             <button class="btn ghost small" type="button" data-clear-log="stream">مسح العرض</button>
           </div>
           <div id="streamLog" class="console" dir="ltr"></div>
+        </div>
+      </section>
+
+      <!-- quests -->
+      <section id="panel-quests" class="tab-panel" role="tabpanel" hidden>
+        <div class="page-head">
+          <div>
+            <h2>مهام Discord</h2>
+            <p>اقبل المهام وأكملها من السيرفر ثم استلم الجوائز — بدون تشغيل جهازك.</p>
+          </div>
+          <span class="pill-status" id="questsStatus">جاهز</span>
+        </div>
+
+        <div class="glass card form-card">
+          <div class="warn-strip">
+            أتمتة المهام قد تخالف شروط ديسكورد وقد تؤدي إلى تعليق وصول المهام لحسابك. الاستخدام على مسؤوليتك.
+          </div>
+          <div class="button-row">
+            <button id="questRefreshBtn" class="btn primary" type="button">تحديث المهام</button>
+            <button id="questStopBtn" class="btn danger" type="button" disabled>إيقاف المهمة</button>
+          </div>
+          <div id="questActive" class="quest-active" hidden>
+            <div class="quest-active-head">
+              <strong id="questActiveName">—</strong>
+              <span id="questActiveType" class="chip"></span>
+              <span id="questActiveValue" class="mono" dir="ltr">0 / 0</span>
+            </div>
+            <div class="progress"><span class="bar" id="questActiveBar"></span></div>
+            <span class="hint" id="questActiveStatus">قيد التنفيذ…</span>
+          </div>
+        </div>
+
+        <div class="glass card">
+          <div class="card-head">
+            <h3>المهام المتاحة</h3>
+            <span class="pill-count" id="questCount">0</span>
+          </div>
+          <div id="questList" class="quest-list"></div>
+          <p class="hint" id="questEmpty">اضغط «تحديث المهام» لجلب المهام من ديسكورد.</p>
+        </div>
+
+        <div class="glass card console-card">
+          <div class="card-head">
+            <h3>سجل المهام</h3>
+            <button class="btn ghost small" type="button" data-clear-log="quests">مسح العرض</button>
+          </div>
+          <div id="questsLog" class="console" dir="ltr"></div>
+        </div>
+      </section>
+
+      <!-- username -->
+      <section id="panel-username" class="tab-panel" role="tabpanel" hidden>
+        <div class="page-head">
+          <div>
+            <h2>يوزر مميز</h2>
+            <p>ابحث عن أسماء قصيرة متاحة (ثنائي، ثلاثي، رباعي) وغيّر اسم حسابك مباشرة.</p>
+          </div>
+          <span class="pill-status" id="nameScanStatus">جاهز</span>
+        </div>
+
+        <div class="glass card form-card">
+          <div class="form-grid">
+            <div class="field">
+              <label>طول اليوزر</label>
+              <div class="seg-row" id="nameLengthRow">
+                <button class="seg-btn active" type="button" data-name-len="2">2</button>
+                <button class="seg-btn" type="button" data-name-len="3">3</button>
+                <button class="seg-btn" type="button" data-name-len="4">4</button>
+                <button class="seg-btn" type="button" data-name-len="5">5</button>
+              </div>
+              <span class="field-hint">2 = حرفان، 3 = ثلاثة أحرف…</span>
+            </div>
+            <div class="field">
+              <label for="nameCount">عدد الأسماء للفحص</label>
+              <input id="nameCount" type="number" min="1" max="30" step="1" value="12" dir="ltr">
+              <span class="field-hint">الفحص بطيء عمداً لتجنب حظر ديسكورد (حتى 30).</span>
+            </div>
+            <div class="field">
+              <label>خيارات</label>
+              <label class="check-row"><input id="nameDigits" type="checkbox" checked> تضمين الأرقام 0-9</label>
+            </div>
+          </div>
+          <button id="nameScanBtn" class="btn primary wide" type="button">ابدأ البحث</button>
+          <div class="progress" id="nameScanProgress" hidden><span class="bar" id="nameScanBar"></span></div>
+        </div>
+
+        <div class="glass card">
+          <div class="card-head">
+            <h3>الأسماء المتاحة</h3>
+            <span class="pill-count" id="nameResultCount">0</span>
+          </div>
+          <div id="nameResults" class="name-grid"></div>
+          <p class="hint" id="nameScanNote">لا توجد نتائج بعد — ابدأ البحث.</p>
+        </div>
+
+        <div class="glass card form-card">
+          <div class="card-head"><h3>فحص وتغيير يدوي</h3></div>
+          <div class="field">
+            <label for="nameManual">اسم محدد</label>
+            <div class="input-row">
+              <input id="nameManual" dir="ltr" autocomplete="off" spellcheck="false" placeholder="username">
+              <button id="nameCheckBtn" class="btn ghost small" type="button">فحص</button>
+              <button id="nameApplyBtn" class="btn primary small" type="button">تغيير</button>
+            </div>
+          </div>
+          <p class="hint">تغيير الاسم قد يتطلب انتظاراً — ديسكورد يحدّ عدد التغييرات. الفحص لا يستهلك التوكن.</p>
         </div>
       </section>
     </main>
