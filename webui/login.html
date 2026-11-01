@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Discord Badge Maximizer — دخول اللوحة</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+  </div>
+
+  <section class="login-view">
+    <div class="login-card glass">
+      <div class="login-brand">
+        <div class="mark mark-lg" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none">
+            <path d="M24 8.5l3.7 8.8 8.8 3.7-8.8 3.7L24 33.5l-3.7-8.8L11.5 21l8.8-3.7z" fill="url(#markGradLogin)"/>
+            <circle cx="35" cy="35" r="3.2" fill="#A9C1FF"/>
+            <defs>
+              <linearGradient id="markGradLogin" x1="11" y1="8" x2="35" y2="34" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#F7FAFF"/>
+                <stop offset="1" stop-color="#9DB2D2"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="login-brand-text">
+          <h1>Discord Badge Maximizer</h1>
+          <p>لوحة محمية — سجّل الدخول للمتابعة</p>
+        </div>
+      </div>
+
+      <form id="authForm" novalidate>
+        <div class="field">
+          <label for="panelPassword">كلمة مرور اللوحة</label>
+          <div class="input-row">
+            <input id="panelPassword" type="password" dir="ltr" autocomplete="current-password"
+                   spellcheck="false" placeholder="Panel password" autofocus>
+            <button id="togglePw" class="btn ghost small icon" type="button" aria-label="إظهار كلمة المرور">
+              <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <p class="auth-error" id="authError" role="alert" hidden></p>
+
+        <button id="authSubmit" class="btn primary wide" type="submit">دخول</button>
+      </form>
+
+      <p class="hint">بعد الدخول الصق توكن ديسكورد وكوكي cf_clearance داخل اللوحة لتشغيل بادجات الألعاب والبث.</p>
+      <p class="privacy-note">
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M6 10V8a6 6 0 1112 0v2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="10" width="16" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="15.5" r="1.6" fill="currentColor"/></svg>
+        كلمة المرور تُقارن داخل الخادم فقط. توكن ديسكورد يبقى في ذاكرة الخادم ولا يُكتب على القرص.
+      </p>
+    </div>
+  </section>
+
+  <script nonce="__CSP_NONCE__">
+    (() => {
+      "use strict";
+      const form = document.getElementById("authForm");
+      const input = document.getElementById("panelPassword");
+      const submit = document.getElementById("authSubmit");
+      const errorBox = document.getElementById("authError");
+      const toggle = document.getElementById("togglePw");
+
+      toggle.addEventListener("click", () => {
+        const show = input.type === "password";
+        input.type = show ? "text" : "password";
+        toggle.setAttribute("aria-label", show ? "إخفاء كلمة المرور" : "إظهار كلمة المرور");
+        input.focus();
+      });
+
+      function showError(message) {
+        errorBox.textContent = message;
+        errorBox.hidden = false;
+        form.classList.remove("shake");
+        void form.offsetWidth;
+        form.classList.add("shake");
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const password = input.value;
+        if (!password) {
+          showError("أدخل كلمة مرور اللوحة.");
+          input.focus();
+          return;
+        }
+        submit.disabled = true;
+        submit.textContent = "جاري التحقق…";
+        errorBox.hidden = true;
+        try {
+          const response = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password }),
+            cache: "no-store",
+            credentials: "same-origin",
+          });
+          let payload = {};
+          try {
+            payload = await response.json();
+          } catch {
+            payload = {};
+          }
+          if (response.ok) {
+            window.location.href = "/";
+            return;
+          }
+          showError(payload.error || "تعذر تسجيل الدخول.");
+          input.value = "";
+          input.focus();
+        } catch {
+          showError("تعذر الاتصال بالخادم — تحقق من الشبكة ثم أعد المحاولة.");
+        } finally {
+          submit.disabled = false;
+          submit.textContent = "دخول";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
