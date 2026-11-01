@@ -29,7 +29,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import games
+import quests as quest_engine
 import stream as stream_engine
+import usernames as username_engine
 
 DISCORD_LOGIN_URL = "https://discord.com/login"
 MAX_BODY_BYTES = 64 * 1024
@@ -294,7 +296,13 @@ class AppState:
         self.last_ping = 0.0
         self.close_requested_at = 0.0
         self.closed = threading.Event()
+        self.quests = quest_engine.QuestManager(self.logs, self._tool_token)
+        self.usernames = username_engine.UsernameTool(self.logs)
         self._scrub_state_files()
+
+    def _tool_token(self) -> str:
+        with self.lock:
+            return self.token
 
     def _scrub_state_files(self) -> None:
         """Remove credential fields left behind by older versions."""
@@ -313,6 +321,8 @@ class AppState:
             raise RuntimeError("انتظر انتهاء المطالبة قبل تغيير بيانات الدخول.")
         if self.stream["running"]:
             raise RuntimeError("أوقف البث قبل تغيير بيانات الدخول.")
+        if self.quests.running:
+            raise RuntimeError("أوقف مهمة Discord قبل تغيير بيانات الدخول.")
 
     def set_token(self, raw: str) -> dict:
         token = normalize_token(raw)
@@ -366,6 +376,8 @@ class AppState:
         self.logs.add("warn", "تم مسح بيانات الحساب الثاني من الذاكرة.")
 
     def clear(self) -> None:
+        if self.quests.running:
+            self.quests.stop()
         with self.lock:
             if self.claim["running"]:
                 raise RuntimeError("انتظر انتهاء المطالبة أو أعد المحاولة بعدها قبل مسح البيانات.")
@@ -747,7 +759,7 @@ class AppState:
 
     def snapshot(self) -> dict:
         with self.lock:
-            return {
+            data = {
                 "authenticated": bool(self.token),
                 "hasCookie": bool(self.cookie),
                 "account": self.account,
@@ -757,6 +769,9 @@ class AppState:
                 "stream": dict(self.stream),
                 "viewer": dict(self.viewer),
             }
+        data["quests"] = self.quests.snapshot()
+        data["usernameScan"] = self.usernames.snapshot()
+        return data
 
 
 class AppRequestHandler(BaseHTTPRequestHandler):
@@ -1175,6 +1190,47 @@ class AppRequestHandler(BaseHTTPRequestHandler):
             if path == "/api/stream/stop":
                 self.state.stop_stream()
                 self._send_json(200, {"ok": True})
+                return
+            if path.startswith("/api/quests/"):
+                quest_id = str(payload.get("id") or "").strip()
+                action = path.rsplit("/", 1)[-1]
+                if action != "refresh" and action != "stop" and not quest_id.isdigit():
+                    raise ValueError("معرّف المهمة غير صالح.")
+                if action == "refresh":
+                    self.state.quests.refresh()
+                elif action == "enroll":
+                    self.state.quests.enroll(quest_id)
+                elif action == "start":
+                    self.state.quests.start(quest_id)
+                elif action == "stop":
+                    self.state.quests.stop()
+                elif action == "claim":
+                    self.state.quests.claim(quest_id)
+                else:
+                    self._send_json(404, {"error": "not found"})
+                    return
+                self._send_json(200, {"ok": True})
+                return
+            if path == "/api/username/scan":
+                self.state.usernames.start_scan(
+                    payload.get("length") or 3,
+                    payload.get("count") or 12,
+                    bool(payload.get("digits", True)),
+                )
+                self._send_json(200, {"ok": True})
+                return
+            if path == "/api/username/check":
+                available = self.state.usernames.check_one(str(payload.get("username") or ""))
+                self._send_json(200, {"available": available})
+                return
+            if path == "/api/username/apply":
+                result = self.state.usernames.apply(
+                    str(payload.get("username") or ""), self.state._tool_token()
+                )
+                with self.state.lock:
+                    if self.state.account:
+                        self.state.account["username"] = result["username"]
+                self._send_json(200, {"account": result})
                 return
 
             self._send_json(404, {"error": "not found"})
