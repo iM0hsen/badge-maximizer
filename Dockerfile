@@ -9,7 +9,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY games.py stream.py web_backend.py server.py ./
+COPY games.py stream.py web_backend.py server.py quests.py usernames.py ./
 COPY webui ./webui
 
 RUN useradd --system --uid 10001 --create-home badge \
