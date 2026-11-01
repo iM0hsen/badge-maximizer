@@ -1,0 +1,9 @@
+.backup
+.git
+badgeimag
+session.json
+*.exe
+*.pyc
+__pycache__
+.env
+README.md
