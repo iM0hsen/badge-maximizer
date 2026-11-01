@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Discord Badge Maximizer</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+  </div>
+  <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+
+  <!-- ------------------------------------------------------------------ login -->
+  <section id="loginView" class="login-view">
+    <div class="login-card glass">
+      <div class="login-brand">
+        <div class="mark mark-lg" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none">
+            <path d="M24 8.5l3.7 8.8 8.8 3.7-8.8 3.7L24 33.5l-3.7-8.8L11.5 21l8.8-3.7z" fill="url(#markGrad)"/>
+            <circle cx="35" cy="35" r="3.2" fill="#A9C1FF"/>
+            <defs>
+              <linearGradient id="markGrad" x1="11" y1="8" x2="35" y2="34" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#F7FAFF"/>
+                <stop offset="1" stop-color="#9DB2D2"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="login-brand-text">
+          <h1>Discord Badge Maximizer</h1>
+          <p>واجهة آمنة لبادجات الألعاب والبث المباشر</p>
+        </div>
+      </div>
+
+      <button id="openLoginBtn" class="btn primary wide" type="button">
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><g transform="translate(24 0) scale(-1 1)"><path d="M10 17l5-5-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 12H3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 4h4a2 2 0 012 2v12a2 2 0 01-2 2h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></g></svg>
+        تسجيل الدخول إلى Discord
+      </button>
+      <p class="hint">يفتح صفحة Discord الرسمية في المتصفح. بعد تسجيل الدخول انسخ التوكن والكوكي ثم الصقهما هنا.</p>
+
+      <details class="login-help">
+        <summary>طريقة جلب التوكن والكوكي</summary>
+        <ol>
+          <li>سجّل الدخول في Discord عبر المتصفح ثم اضغط <code>Ctrl + Shift + I</code>.</li>
+          <li>من تبويب <code>Network</code> افتح أي طلب وانسخ قيمة <code>authorization</code>.</li>
+          <li>من تبويب <code>Application</code> ← <code>Cookies</code> ← <code>discord.com</code> انسخ قيمة <code>cf_clearance</code>.</li>
+          <li>الصق كل قيمة في الحقل المناسب بالأعلى ثم اضغط «تحقق ومتابعة».</li>
+        </ol>
+      </details>
+
+      <div class="field">
+        <label for="tokenInput">توكن الحساب</label>
+        <div class="input-row">
+          <input id="tokenInput" type="password" dir="ltr" autocomplete="off" spellcheck="false" placeholder="Authorization token">
+          <button class="btn ghost small" type="button" data-paste="token">لصق</button>
+          <button class="btn ghost small icon" type="button" data-eye="token" aria-label="إظهار التوكن">
+            <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="cookieInput">كوكي cf_clearance</label>
+        <div class="input-row">
+          <input id="cookieInput" type="password" dir="ltr" autocomplete="off" spellcheck="false" placeholder="cf_clearance value">
+          <button class="btn ghost small" type="button" data-paste="cookie">لصق</button>
+          <button class="btn ghost small icon" type="button" data-eye="cookie" aria-label="إظهار الكوكي">
+            <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button id="continueBtn" class="btn primary wide" type="button">تحقق ومتابعة</button>
+      <p class="privacy-note" id="privacyNote">
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M6 10V8a6 6 0 1112 0v2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="10" width="16" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="15.5" r="1.6" fill="currentColor"/></svg>
+        التوكن والكوكي يبقيان في ذاكرة التطبيق فقط، ولا يُرسلان إلى أي جهة أخرى.
+      </p>
+    </div>
+  </section>
+
+  <!-- -------------------------------------------------------------------- app -->
+  <div id="appView" class="app" hidden>
+    <header class="topbar glass">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none">
+            <path d="M24 8.5l3.7 8.8 8.8 3.7-8.8 3.7L24 33.5l-3.7-8.8L11.5 21l8.8-3.7z" fill="url(#markGrad2)"/>
+            <circle cx="35" cy="35" r="3.2" fill="#A9C1FF"/>
+            <defs>
+              <linearGradient id="markGrad2" x1="11" y1="8" x2="35" y2="34" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#F7FAFF"/>
+                <stop offset="1" stop-color="#9DB2D2"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <strong>Badge Maximizer</strong>
+          <span>محلي وآمن</span>
+        </div>
+      </div>
+
+      <nav class="nav" role="tablist" aria-label="الأقسام">
+        <button class="nav-pill active" type="button" role="tab" aria-selected="true" data-tab="profile">البروفايل</button>
+        <button class="nav-pill" type="button" role="tab" aria-selected="false" data-tab="games">بادجات الألعاب</button>
+        <button class="nav-pill" type="button" role="tab" aria-selected="false" data-tab="stream">البث المباشر</button>
+      </nav>
+
+      <div class="account">
+        <img id="topAvatar" class="avatar-sm" alt="">
+        <div class="account-text">
+          <strong id="topName">—</strong>
+          <span id="topTag" dir="ltr"></span>
+        </div>
+        <button id="credBtn" class="btn ghost icon" type="button" title="تحديث بيانات الدخول" aria-label="تحديث بيانات الدخول">
+          <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 12h8M18 12v3M21 12v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button id="logoutBtn" class="btn ghost icon" type="button" title="مسح بيانات الدخول" aria-label="مسح بيانات الدخول">
+          <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M14 4h4a2 2 0 012 2v12a2 2 0 01-2 2h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M10 8l-4 4 4 4M6 12h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="lockBtn" class="btn ghost icon" type="button" title="قفل اللوحة" aria-label="قفل اللوحة" hidden>
+          <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V8a4 4 0 118 0v2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="15.3" r="1.5" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- profile -->
+      <section id="panel-profile" class="tab-panel active" role="tabpanel">
+        <div class="profile-layout">
+          <article class="discord-profile" id="profileCard">
+            <div class="banner" id="profileBanner"></div>
+            <div class="profile-body">
+              <div class="avatar-wrap">
+                <img id="profileAvatar" class="avatar-lg" alt="صورة الحساب">
+                <span class="status-dot" title="متصل"></span>
+              </div>
+              <div class="profile-names">
+                <h2 id="profileDisplayName">—</h2>
+                <p id="profileUsername" dir="ltr">—</p>
+              </div>
+              <div id="profileBadges" class="badge-row"></div>
+              <div class="divider"></div>
+              <div class="section-label">نبذة</div>
+              <p id="profileBio" class="bio" dir="auto">لا توجد نبذة.</p>
+              <div class="section-label">عضو منذ</div>
+              <p id="profileCreated" class="muted">—</p>
+              <div id="connectedWrap" hidden>
+                <div class="section-label">الحسابات المرتبطة</div>
+                <div id="connectedList" class="chips"></div>
+              </div>
+            </div>
+          </article>
+
+          <aside class="side-stack">
+            <div class="glass card">
+              <div class="card-head">
+                <h3>معلومات الحساب</h3>
+                <button id="refreshProfile" class="btn ghost small" type="button">تحديث</button>
+              </div>
+              <dl class="stats">
+                <div><dt>المعرّف</dt><dd class="mono" id="statId">—</dd></div>
+                <div><dt>اسم المستخدم</dt><dd class="mono" id="statUsername" dir="ltr">—</dd></div>
+                <div><dt>عدد البادجات</dt><dd id="statBadges">—</dd></div>
+                <div><dt>Nitro منذ</dt><dd id="statPremium">—</dd></div>
+              </dl>
+            </div>
+            <div class="glass card">
+              <div class="card-head">
+                <h3>كل البادجات</h3>
+                <span class="pill-count" id="badgeCount">0</span>
+              </div>
+              <ul id="badgeList" class="badge-list">
+                <li class="empty">لا توجد بادجات ظاهرة.</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+        <div id="profileLoading" class="profile-loading glass" hidden>
+          <span class="spinner" aria-hidden="true"></span>
+          جاري جلب البروفايل من Discord…
+        </div>
+      </section>
+
+      <!-- games -->
+      <section id="panel-games" class="tab-panel" role="tabpanel" hidden>
+        <div class="page-head">
+          <div>
+            <h2>بادجات الألعاب</h2>
+            <p>ارفع Game Time و Game Variety عبر بيانات ألعاب من كتالوج Discord الحقيقي.</p>
+          </div>
+          <span class="pill-status" id="gamesStatus">جاهز</span>
+        </div>
+
+        <div class="glass card form-card">
+          <div class="warn-strip" id="gamesCookieHint" hidden>
+            كوكي cf_clearance غير محفوظ — أضفه من زر «بيانات الدخول» أعلى الصفحة.
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="gamesCount">عدد الألعاب</label>
+              <input id="gamesCount" type="number" min="0" max="1000" step="1" value="100" dir="ltr">
+              <span class="field-hint">اتركه فارغاً لاختيار كل الألعاب المتاحة.</span>
+            </div>
+            <div class="field">
+              <label for="gamesHours">ساعات لكل لعبة</label>
+              <input id="gamesHours" type="number" min="1" max="100000" step="1" value="50" dir="ltr">
+              <span class="field-hint">50 ساعة × 100 لعبة = 5,000 ساعة.</span>
+            </div>
+          </div>
+          <div class="summary" id="gamesSummary">100 لعبة × 50 ساعة = 5,000 ساعة إجمالاً.</div>
+          <div class="progress" id="gamesProgress" hidden><span class="bar" id="gamesBar"></span></div>
+          <button id="claimBtn" class="btn primary wide" type="button">بدء المطالبة</button>
+        </div>
+
+        <div class="glass card console-card">
+          <div class="card-head">
+            <h3>سجل العملية</h3>
+            <button class="btn ghost small" type="button" data-clear-log="games">مسح العرض</button>
+          </div>
+          <div id="gamesLog" class="console" dir="ltr"></div>
+        </div>
+      </section>
+
+      <!-- stream -->
+      <section id="panel-stream" class="tab-panel" role="tabpanel" hidden>
+        <div class="page-head">
+          <div>
+            <h2>البث المباشر</h2>
+            <p>بث صوتي صامت عبر Discord Gateway يبقي حالة Go Live بدون استهلاك موارد تقريباً.</p>
+          </div>
+          <span class="pill-status" id="streamStatus">غير متصل</span>
+        </div>
+
+        <div class="glass card form-card">
+          <div class="warn-strip" id="streamCookieHint" hidden>
+            كوكي cf_clearance غير محفوظ — أضفه من زر «بيانات الدخول» أعلى الصفحة.
+          </div>
+          <div class="live-banner" id="liveBanner" hidden>
+            <span class="live-dot" aria-hidden="true"></span>
+            <span>LIVE</span>
+            <span id="liveTimer" class="mono" dir="ltr">00:00:00</span>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="guildId">Server (Guild) ID</label>
+              <input id="guildId" inputmode="numeric" dir="ltr" autocomplete="off" placeholder="1234567890">
+            </div>
+            <div class="field">
+              <label for="channelId">Voice Channel ID</label>
+              <input id="channelId" inputmode="numeric" dir="ltr" autocomplete="off" placeholder="1234567890">
+            </div>
+          </div>
+          <div class="callout">
+            يلزم وجود حساب مشاهد واحد على الأقل داخل الروم، وتفعيل خيار
+            «Use data to personalize my Discord experience» في إعدادات حسابك.
+            أضف الحساب الثاني بالأسفل وسيدخل تلقائياً مع بدء البث.
+          </div>
+          <div class="button-row">
+            <button id="streamStart" class="btn primary" type="button">بدء البث</button>
+            <button id="streamStop" class="btn danger" type="button" disabled>إيقاف البث</button>
+          </div>
+        </div>
+
+        <div class="glass card form-card">
+          <div class="card-head">
+            <div>
+              <h3>حساب المشاهدة (الحساب الثاني)</h3>
+              <p class="hint">يدخل نفس السيرفر والروم كعضو ساكت، حتى يحتسب ديسكورد ساعات البث.</p>
+            </div>
+            <div class="viewer-status">
+              <span class="pill-status" id="viewerStatus">غير متصل</span>
+              <span class="mono viewer-timer" id="viewerTimer" dir="ltr" hidden>00:00:00</span>
+            </div>
+          </div>
+
+          <div class="viewer-account" id="viewerAccount" hidden>
+            <img id="viewerAvatar" alt="" width="34" height="34" referrerpolicy="no-referrer">
+            <div class="viewer-account-text">
+              <strong id="viewerName">—</strong>
+              <span id="viewerTag"></span>
+            </div>
+            <span class="chip chip-ok">جاهز للمشاهدة</span>
+          </div>
+
+          <div class="warn-strip" id="viewerHint" hidden>
+            لا يوجد حساب ثانٍ محفوظ — أضف توكنه ليدخل الروم تلقائياً عند بدء البث.
+          </div>
+
+          <div class="field">
+            <label for="altTokenInput">توكن الحساب الثاني</label>
+            <div class="input-row">
+              <input id="altTokenInput" type="password" dir="ltr" autocomplete="off" spellcheck="false" placeholder="Second account token">
+              <button class="btn ghost icon" type="button" data-eye="altToken" aria-label="إظهار القيمة">
+                <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M2.4 12s3.6-6.4 9.6-6.4S21.6 12 21.6 12s-3.6 6.4-9.6 6.4S2.4 12 2.4 12z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="altSave" class="btn primary" type="button">حفظ بيانات الحساب الثاني</button>
+            <button id="altClear" class="btn ghost" type="button">مسح الحساب الثاني</button>
+          </div>
+          <p class="hint privacy-inline">توكن الحساب الثاني يبقى في ذاكرة التطبيق فقط، ولا يُحفظ على القرص ولا يُرسل إلا لديسكورد.</p>
+        </div>
+
+        <div class="glass card console-card">
+          <div class="card-head">
+            <h3>سجل البث</h3>
+            <button class="btn ghost small" type="button" data-clear-log="stream">مسح العرض</button>
+          </div>
+          <div id="streamLog" class="console" dir="ltr"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="statusbar">
+      <span id="footerState">متصل محلياً فقط</span>
+      <span class="foot-sep">·</span>
+      <span>التوكن والكوكي في الذاكرة فقط</span>
+    </footer>
+  </div>
+
+  <!-- ------------------------------------------------------------ credentials -->
+  <div id="credModal" class="modal-backdrop" hidden>
+    <div class="modal glass" role="dialog" aria-modal="true" aria-labelledby="credTitle">
+      <div class="card-head">
+        <h3 id="credTitle">تحديث بيانات الدخول</h3>
+        <button class="btn ghost icon" type="button" data-close-modal aria-label="إغلاق">
+          <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <p class="hint">اترك الحقل فارغاً للإبقاء على القيمة الحالية في الذاكرة.</p>
+      <div class="field">
+        <label for="modalToken">توكن جديد</label>
+        <input id="modalToken" type="password" dir="ltr" autocomplete="off" spellcheck="false" placeholder="Authorization token">
+      </div>
+      <div class="field">
+        <label for="modalCookie">كوكي cf_clearance جديد</label>
+        <input id="modalCookie" type="password" dir="ltr" autocomplete="off" spellcheck="false" placeholder="cf_clearance value">
+      </div>
+      <div class="button-row">
+        <button id="credSave" class="btn primary" type="button">حفظ</button>
+        <button class="btn ghost" type="button" data-close-modal>إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script nonce="__CSP_NONCE__">window.__APP_KEY__ = "__APP_KEY__"; window.__PUBLIC_MODE__ = __PUBLIC_MODE_VALUE__;</script>
+  <script src="/app.js"></script>
+</body>
+</html>
