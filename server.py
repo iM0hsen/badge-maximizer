@@ -13,6 +13,7 @@ Environment:
   BADGE_DATA_DIR        directory for non-sensitive progress files (default: app dir)
   BADGE_TRUST_PROXY     "1" when behind Caddy/nginx (default 1)
   BADGE_COOKIE_SECURE   "1" to force Secure cookies (default 1 in server mode)
+  BADGE_KEEPALIVE       "0" to disable the self-ping keepalive (default on)
 """
 from __future__ import annotations
 
@@ -20,6 +21,8 @@ import os
 import signal
 import sys
 import threading
+import time
+import urllib.request
 
 from web_backend import (
     MIN_PANEL_PASSWORD_LENGTH,
@@ -58,6 +61,25 @@ def _stop_engines(state: AppState) -> None:
     for engine in engines:
         if engine is not None:
             engine.running = False
+
+
+def _start_keepalive(domain: str) -> None:
+    """Ping our own public URL so free hosts do not idle the panel out."""
+    host = domain.split(",")[0].strip() if domain else ""
+    if not host or not _env_bool("BADGE_KEEPALIVE", True):
+        return
+    url = f"https://{host}/healthz"
+
+    def loop() -> None:
+        while True:
+            time.sleep(300)
+            try:
+                urllib.request.urlopen(url, timeout=20).read()
+            except Exception:
+                pass
+
+    threading.Thread(target=loop, daemon=True, name="keepalive").start()
+    print(f"[badge-maximizer] keepalive self-ping every 300s -> {url}", flush=True)
 
 
 def main() -> int:
@@ -125,6 +147,7 @@ def main() -> int:
         flush=True,
     )
     state.logs.add("info", "بدأت لوحة الاستضافة — بانتظار تسجيل الدخول.")
+    _start_keepalive(domain)
 
     try:
         server.serve_forever(poll_interval=0.5)
